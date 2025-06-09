@@ -2,7 +2,10 @@
 *.d
 .vscode
 *.csv
+csv/
 .DS_Store
+wav/
+dr_wav.h
 
 # Compiled Object files
 *.slo

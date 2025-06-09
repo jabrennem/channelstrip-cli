@@ -9,11 +9,14 @@ make all
 ```
 
 
-Clip sample data and Plot results
+Clip a wav file using different clipping type.
 
 ```bash
-./compiled/clipper_sample_data -o clipper_sample_data.csv
-python src/plot_clipper_types.py
+compiled/clipper -t hard -ig 9.0 -og 6.0
+compiled/clipper -t tanh -ig 9.0 -og 6.0
+compiled/clipper -t smooth -ig 9.0 -og 6.0
 ```
+
+python plotting/plot_ntm_files.py
 
 <img src="./images/clipper_types_comparison.png" alt="Description of image" width="800">

@@ -1,3 +1,6 @@
+#define DR_WAV_IMPLEMENTATION
+#include "dr_wav.h" // downloaded this
+
 #include <iostream>
 #include <cmath>
 #include <vector>
@@ -37,6 +40,17 @@ float cubicClip(float x)
 float smoothClip(float x)
 {
     return x / (1.0f + std::abs(x));
+}
+
+// === Convert 16-bit PCM to float (-1.0 to 1.0) ===
+float pcm16ToFloat(int16_t sample) {
+    return static_cast<float>(sample) / 32768.0f;
+}
+
+// === Convert float (-1.0 to 1.0) to 16-bit PCM ===
+int16_t floatToPcm16(float sample) {
+    sample = std::clamp(sample, -1.0f, 1.0f);
+    return static_cast<int16_t>(sample * 32767.0f);
 }
 
 // process an entire buffer
@@ -95,23 +109,63 @@ int main(int argc, char** argv)
 {
     std::string clipperTypesStr = "Hard,Tanh,Atan,Cubic,Smooth";
     std::string csvFilename = "output.csv";
+    std::string useSampleDataStr = "false";
+    std::string inputWavFilename = "input.wav";
 
     // Parse argv
     for (int i = 1; i < argc; ++i)
     {
         std::string arg = argv[i];
-        if ((arg == "-o" || arg == "--output") && i + 1 < argc) {
+        if ((arg == "-c" || arg == "--csv") && i + 1 < argc) {
             csvFilename = argv[++i];
         }
         if ((arg == "-t" || arg == "--type") && i + 1 < argc) {
             clipperTypesStr = argv[++i];
         }
+        if ((arg == "-s" || arg == "--sample") && i + 1 < argc) {
+            useSampleDataStr = "true";
+        }
+        if ((arg == "-i" || arg == "--input") && i + 1 < argc) {
+            inputWavFilename = argv[++i];
+        }
     }
 
-    // Simulate a simple waveform with values from -2 to 2
     std::vector<float> inputBuffer;
-    for (float x = -2.0f; x <= 2.0f; x += 0.1f)
-        inputBuffer.push_back(x);
+
+    // Set inputBuffer
+    if (useSampleDataStr == "true")
+    {
+        // Simulate a simple waveform with values from -2 to 2
+        for (float x = -2.0f; x <= 2.0f; x += 0.1f)
+            inputBuffer.push_back(x);
+    } else {
+        // Load WAV File
+
+        drwav wav;
+        const char* inputWavFileNameCStr = inputWavFilename.c_str();
+
+        if (!drwav_init_file(&wav, inputWavFileNameCStr, nullptr)) {
+            std::cerr << "Failed to open WAV file.\n";
+            return 1;
+        }
+
+        if (wav.bitsPerSample != 16) {
+            std::cerr << "Only 16-bit WAV files are supported in this example.\n";
+            drwav_uninit(&wav);
+            return 1;
+        }
+
+        std::vector<int16_t> inputSamples(wav.totalPCMFrameCount * wav.channels);
+        drwav_read_pcm_frames_s16(&wav, wav.totalPCMFrameCount, inputSamples.data());
+        std::vector<int16_t> outputSamples(inputSamples.size());
+    }
+
+
+
+
+
+
+
     
     // Define clippers 
     std::map<std::string, float(*)(float)> clippers = {
@@ -139,7 +193,11 @@ int main(int argc, char** argv)
     }
 
     // Export to CSV
-    exportToCSV(csvFilename, inputBuffer, results);
+    if (useSampleDataStr == "true")
+        exportToCSV(csvFilename, inputBuffer, results);
+    else {
+        
+    }
 
     return 0;
 }
