@@ -2,18 +2,9 @@
 CXX := g++
 CXXFLAGS := -std=c++17 -Wall -Wextra -O2
 
-# Target executable
-TARGET := clipper
-SRC := src/clipper.cpp
-
-# Default target
-all: $(TARGET)
-
-$(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) $(SRC) -o $(TARGET)
-
-run: $(TARGET)
-	./$(TARGET)
+# Build all the files
+all:
+	$(CXX) $(CXXFLAGS) src/clipper_sample_data.cpp -o compiled/clipper_sample_data
 
 clean:
-	rm -f $(TARGET)
+	rm -f compiled
