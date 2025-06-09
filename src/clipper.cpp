@@ -62,58 +62,7 @@ int16_t floatToPcm16(float sample) {
     return static_cast<int16_t>(sample * 32767.0f);
 }
 
-std::vector<int16_t> read16BitWav(drwav wav, const char* filename)
-{
-    // Open and initialize the input WAV file
-    if (!drwav_init_file(&wav, filename, nullptr)) {
-        std::cerr << "Failed to open input WAV file.\n";
-        return {};
-    }
-
-    // Read frames into a vector
-    std::vector<int16_t> pcmSamples(wav.totalPCMFrameCount * wav.channels);
-    drwav_read_pcm_frames_s16(&wav, wav.totalPCMFrameCount, pcmSamples.data());
-    return pcmSamples;
-}
-
-drwav_uint64 write16BitWav(const char* filename, const std::vector<int16_t>& pcmSamples, drwav wav)
-{
-    // Prepare output WAV format (32-bit float)
-    drwav_data_format format;
-    format.container = drwav_container_riff;
-    format.format = DR_WAVE_FORMAT_PCM;
-    format.channels = wav.channels;
-    format.sampleRate = wav.sampleRate;
-    format.bitsPerSample = 16;
-
-    // Open output WAV file for writing
-    drwav outWav;
-    if (!drwav_init_file_write(&outWav, filename, &format, nullptr)) {
-        std::cerr << "Failed to open output WAV file.\n";
-        drwav_uninit(&wav);
-        return 0;
-    }
-
-    // Get framesRead from input wav
-    drwav_uint64 framesRead = pcmSamples.size() / wav.channels;
-
-    // Write frames to output wav
-    drwav_uint64 framesWritten = drwav_write_pcm_frames(&outWav, framesRead, pcmSamples.data());
-    if (framesWritten != framesRead) {
-        std::cerr << "Warning: Not all frames were written.\n";
-        return 0;
-    }
-
-    // Cleanup
-    drwav_uninit(&wav);
-    drwav_uninit(&outWav);
-
-    return framesWritten;
-}
-
-void writeToCSV(const std::string& filename,
-                const std::vector<float>& original,
-                const std::vector<float>& clipped)
+void writeToCSV(const std::string& filename, const std::vector<float>& original, const std::vector<float>& clipped)
 {
     if (original.size() != clipped.size()) {
         std::cerr << "Error: Vectors must be the same size.\n";
@@ -142,7 +91,7 @@ void writeToCSV(const std::string& filename,
 int main(int argc, char** argv)
 {
     // DEFAULT ARGUMENTS
-    const char* inputWavFileName = "wav/NTM_Underoath_Kick1_44khz_16bit.wav";
+    std::string inputWavFileName = "wav/NTM_Underoath_Kick1_44khz_16bit.wav";
     std::string outputWavFileName = "wav/NTM_Underoath_Kick1_44khz_16bit_clip_.wav";
     std::string outputCSVFileName = "csv/NTM_Underoath_Kick1_44khz_16bit_";
     std::string clipperType = "hard";
@@ -170,6 +119,7 @@ int main(int argc, char** argv)
         }
     }
 
+    // SET ARGUMENTS ACCORDING TO COMMAND LINE ARGUMENTS
     float inputGainLinear = std::pow(10.0f, inputGainDB / 20.0f);
     float outputGainLinear = std::pow(10.0f, outputGainDB / 20.0f);
     outputCSVFileName += \
@@ -203,13 +153,14 @@ int main(int argc, char** argv)
     std::cout << "Output DB Gain: " << outputGainDB << " dB\n";
     std::cout << "Output Linear Gain: " << outputGainLinear << "\n";
     std::cout << "Input WAV: " << inputWavFileName << "\n";
+    std::cout << "Input WAV cstr: " << inputWavFileName.c_str() << "\n";
     std::cout << "Output WAV: " << outputWavFileName << "\n";
     std::cout << "Output WAV cstr: " << outputWavFileName.c_str() << "\n";
     std::cout << "Clipper Type: " << clipperType << "\n";
 
     // Open and initialize the input WAV file
     drwav wavIn;
-    if (!drwav_init_file(&wavIn, inputWavFileName, nullptr)) {
+    if (!drwav_init_file(&wavIn, inputWavFileName.c_str(), nullptr)) {
         std::cerr << "Failed to open input WAV file.\n";
         return 1;
     }
@@ -243,7 +194,7 @@ int main(int argc, char** argv)
     format.sampleRate = wavIn.sampleRate;
     format.bitsPerSample = wavIn.bitsPerSample;
 
-    // // Open output WAV file for writing
+    // Open output WAV file for writing
     drwav outWav;
     std::cout << "Writing to: " << outputWavFileName << "\n";
     if (!drwav_init_file_write(&outWav, outputWavFileName.c_str(), &format, nullptr)) {
