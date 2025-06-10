@@ -5,6 +5,7 @@ Practice code for implementing a clipper in C++
 ## Build
 
 Build all clippers
+
 ```bash
 make all
 ```
@@ -13,22 +14,18 @@ make all
 
 ## Input and Output
 
-Specify input file.
+### PIPE
+
+Process streams with clipper using PIPE to another file. ✅
 
 ```bash
-compiled/clipper --input-file input.wav --output-file output.wav
+cat wav/input.wav | compiled/clipper - > output.wav
 ```
 
-Stream to stdout
+Process streams with clipper using PIPE to a audio player such as play. ✅
 
 ```bash
-compiled/clipper --input-file input.wav > output.wav
-```
-
-Output values to a csv file 
-
-```bash
-compiled/clipper --input-file input.wav --output-file output.wav --csv
+cat wav/input.wav | compiled/clipper - | play -t wav -
 ```
 
 ## Clipper Type
@@ -44,20 +41,11 @@ compiled/clipper --type smooth --input-file input.wav
 
 ## Gain compensation
 
-Specify Input and Output Gain to drive the distortion and compensate afterwards.
+Specify Input and Output Gain to drive the distortion and compensate output level afterwards.
 
 ```bash
-compiled/clipper \
-    --type hard \
-    --input-gain 9.0 \
-    --output-gain 6.0 \
-    --input-file wav/NTM_Underoath_Kick1_44khz_16bit.wav \
-    --output-file wav/NTM_Underoath_Kick1_44khz_16bit_clip_hard_in9.0_out6.0.wav
+cat wav/input.wav | compiled/clipper --type smooth --input-gain 9.0 - > wav/output.wav
 ```
-
-
-
-python plotting/plot_ntm_files.py
 
 <img src="./images/clipper_types_comparison.png" alt="Description of image" width="800">
 
