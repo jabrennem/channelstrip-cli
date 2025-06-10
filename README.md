@@ -33,8 +33,8 @@ cat wav/input.wav | compiled/clipper - | play -t wav -
 Clip a wav file using different clipping types.
 
 ```bash
-compiled/clipper --type hard --input-file input.wav --output-file output.wav
-compiled/clipper --type smooth --input-file input.wav
+cat wav/input.wav | compiled/clipper --type hard > wav/output.wav
+cat wav/input.wav | compiled/clipper --type smooth > wav/output.wav
 ```
 
 <img src="./images/clipper_types_comparison.png" alt="Description of image" width="500">
@@ -44,5 +44,5 @@ compiled/clipper --type smooth --input-file input.wav
 Specify Input and Output Gain to drive the distortion and compensate output level afterwards.
 
 ```bash
-cat wav/input.wav | compiled/clipper --type smooth --input-gain 9.0 - > wav/output.wav
+cat wav/input.wav | compiled/clipper --input-gain 9.0 --output-gain 3.0 - > wav/output.wav
 ```
