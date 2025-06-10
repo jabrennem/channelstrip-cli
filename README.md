@@ -33,8 +33,8 @@ cat wav/input.wav | compiled/clipper - | play -t wav -
 Clip a wav file using different clipping types.
 
 ```bash
-cat wav/input.wav | compiled/clipper --type hard > wav/output.wav
-cat wav/input.wav | compiled/clipper --type smooth > wav/output.wav
+cat wav/input.wav | compiled/clipper --type hard - > wav/output.wav
+cat wav/input.wav | compiled/clipper --type smooth - > wav/output.wav
 ```
 
 <img src="./images/clipper_types_comparison.png" alt="Description of image" width="500">
