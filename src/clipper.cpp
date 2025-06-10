@@ -140,6 +140,7 @@ int main(int argc, char** argv)
     std::string clipperType = "hard";
     float inputGainDB = 0.0f;
     float outputGainDB = 0.0f;
+    bool csv = false;
 
     // SET ARGUMENTS
     for (int i = 1; i < argc; ++i)
@@ -150,6 +151,7 @@ int main(int argc, char** argv)
         if (arg == "--input-gain" && i + 1 < argc) inputGainDB = std::stof(argv[++i]);
         if (arg == "--output-gain" && i + 1 < argc) outputGainDB = std::stof(argv[++i]);
         if (arg == "--type" && i + 1 < argc) clipperType = argv[++i];
+        if (arg == "--csv") csv = true;
     }
 
     // SET ARGUMENTS ACCORDING TO COMMAND LINE ARGUMENTS
@@ -185,6 +187,10 @@ int main(int argc, char** argv)
     log("Output WAV cstr: " + std::string(outputWavFileName.c_str()), logFile);
     log("Clipper Type: " + clipperType, logFile);
 
+    // // Simulate a simple waveform with values from -2 to 2
+    // for (float x = -2.0f; x <= 2.0f; x += 0.1f)
+    //     inputBuffer.push_back(x);
+
     // Open and initialize the input WAV file
     drwav wavIn;
     if (!drwav_init_file(&wavIn, inputWavFileName.c_str(), nullptr)) {
@@ -211,9 +217,6 @@ int main(int argc, char** argv)
         outputBuffer[i] = floatToPcm16(clippedSamples[i]);
     }
 
-    // export to csv
-    writeToCSV(outputCSVFileName, floatSamples, clippedSamples);
-
     // Prepare output WAV format (32-bit float)
     drwav_data_format format;
     format.container = drwav_container_riff;
@@ -239,6 +242,9 @@ int main(int argc, char** argv)
     // Cleanup
     drwav_uninit(&wavIn);
     drwav_uninit(&outWav);
+
+    // export to csv
+    if (csv) writeToCSV(outputCSVFileName, floatSamples, clippedSamples);
     
     // Close log file
     if (logFile.is_open()) {

@@ -25,6 +25,12 @@ Stream to stdout
 compiled/clipper --input-file input.wav > output.wav
 ```
 
+Output values to a csv file 
+
+```bash
+compiled/clipper --input-file input.wav --output-file output.wav --csv
+```
+
 ## Clipper Type
 
 Clip a wav file using different clipping types.
