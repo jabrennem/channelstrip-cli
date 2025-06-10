@@ -57,6 +57,6 @@ python plotting/plot_ntm_files.py
 
 ```bash
 comp --threshold '-18' --ratio 4 --attack 0.3 --release 0.1 | 
-eq --hpf-freq 30hz --lpf-freq 12khz | 
+eq --hpf-freq 30hz --lpf-f3req 12khz | 
 clipper --type hard --input-gain 10db --output-gain '-10db' > out.wav
 ```

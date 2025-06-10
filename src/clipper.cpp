@@ -9,6 +9,8 @@
 #include <iomanip>
 #include <map>
 #include <sstream>
+#include <chrono>
+#include <ctime>
 
 // hard clipper
 float hardClip(float x)
@@ -84,16 +86,57 @@ void writeToCSV(const std::string& filename, const std::vector<float>& original,
     }
 
     file.close();
-    std::cout << "Num Samples written: " << max << "\n";
-    std::cout << "CSV written to: " << filename << "\n";
+    
+    // Create a static log file for the writeToCSV function
+    static std::ofstream csvLogFile("logs/clipper.log", std::ios::app);
+    if (csvLogFile.is_open()) {
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+        std::tm* now_tm = std::localtime(&now_time);
+        char timestamp[25];
+        std::strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", now_tm);
+        
+        csvLogFile << "[" << timestamp << "] Num Samples written: " << max << std::endl;
+        csvLogFile << "[" << timestamp << "] CSV written to: " << filename << std::endl;
+    }
+}
+
+// Logger function to write to a log file instead of cout
+void log(const std::string& message, std::ofstream& logFile) {
+    // Get current time
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+    
+    // Format timestamp
+    std::tm* now_tm = std::localtime(&now_time);
+    char timestamp[25];
+    std::strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", now_tm);
+    
+    // Write to log file with timestamp
+    logFile << "[" << timestamp << "] " << message << std::endl;
+}
+
+std::string getFilenameWithoutExtension(const std::string& path) {
+    size_t lastSlash = path.find_last_of("/\\");
+    size_t lastDot = path.find_last_of(".");
+    
+    size_t startPos = (lastSlash != std::string::npos) ? lastSlash + 1 : 0;
+    size_t length = (lastDot != std::string::npos && lastDot > startPos) ? lastDot - startPos : std::string::npos;
+    
+    return path.substr(startPos, length);
 }
 
 int main(int argc, char** argv)
 {
+    // Open log file
+    std::ofstream logFile("logs/clipper.log", std::ios::app);
+    if (!logFile.is_open()) {
+        std::cerr << "Failed to open log file. Continuing without logging." << std::endl;
+    }
+    
     // DEFAULT ARGUMENTS
-    std::string inputWavFileName = "wav/NTM_Underoath_Kick1_44khz_16bit.wav";
-    std::string outputWavFileName = "wav/NTM_Underoath_Kick1_44khz_16bit_clip_.wav";
-    std::string outputCSVFileName = "csv/NTM_Underoath_Kick1_44khz_16bit_";
+    std::string inputWavFileName;
+    std::string outputWavFileName;
     std::string clipperType = "hard";
     float inputGainDB = 0.0f;
     float outputGainDB = 0.0f;
@@ -102,35 +145,19 @@ int main(int argc, char** argv)
     for (int i = 1; i < argc; ++i)
     {
         std::string arg = argv[i];
-        if ((arg == "-ig" || arg == "--input-gain") && i + 1 < argc) {
-            inputGainDB = std::stof(argv[++i]);
-        }
-        if ((arg == "-og" || arg == "--output-gain") && i + 1 < argc) {
-            outputGainDB = std::stof(argv[++i]);
-        }
-        if ((arg == "-i" || arg == "--input") && i + 1 < argc) {
-            inputWavFileName = argv[++i];
-        }
-        if ((arg == "-o" || arg == "--output") && i + 1 < argc) {
-            outputWavFileName = argv[++i];
-        }
-        if ((arg == "-t" || arg == "--type") && i + 1 < argc) {
-            clipperType = argv[++i];
-        }
+        if (arg == "--input-file" && i + 1 < argc) inputWavFileName = argv[++i];
+        if (arg == "--output-file" && i + 1 < argc) outputWavFileName = argv[++i];
+        if (arg == "--input-gain" && i + 1 < argc) inputGainDB = std::stof(argv[++i]);
+        if (arg == "--output-gain" && i + 1 < argc) outputGainDB = std::stof(argv[++i]);
+        if (arg == "--type" && i + 1 < argc) clipperType = argv[++i];
     }
 
     // SET ARGUMENTS ACCORDING TO COMMAND LINE ARGUMENTS
     float inputGainLinear = std::pow(10.0f, inputGainDB / 20.0f);
     float outputGainLinear = std::pow(10.0f, outputGainDB / 20.0f);
-    outputCSVFileName += \
-        clipperType + "_" + \
-        std::to_string(inputGainDB) + "_" + \
-        std::to_string(outputGainDB) + ".csv";
-    outputWavFileName += \
-        clipperType + "_" + \
-        std::to_string(inputGainDB) + "_" + \
-        std::to_string(outputGainDB) + ".wav";
+    std::string outputCSVFileName = "csv/" + getFilenameWithoutExtension(outputWavFileName) + ".csv";
     
+    // Set Clipper Function
     float (*clipFunc)(float);
     if (clipperType == "hard")
         clipFunc = hardClip;
@@ -147,20 +174,21 @@ int main(int argc, char** argv)
         std::cerr << "Invalid clipper type: " << clipperType << "\n";
         return 0;
     }
-    
-    std::cout << "Input DB Gain: " << inputGainDB << " dB\n";
-    std::cout << "Input Linear Gain: " << inputGainLinear << "\n";
-    std::cout << "Output DB Gain: " << outputGainDB << " dB\n";
-    std::cout << "Output Linear Gain: " << outputGainLinear << "\n";
-    std::cout << "Input WAV: " << inputWavFileName << "\n";
-    std::cout << "Input WAV cstr: " << inputWavFileName.c_str() << "\n";
-    std::cout << "Output WAV: " << outputWavFileName << "\n";
-    std::cout << "Output WAV cstr: " << outputWavFileName.c_str() << "\n";
-    std::cout << "Clipper Type: " << clipperType << "\n";
+
+    log("Input DB Gain: " + std::to_string(inputGainDB) + " dB", logFile);
+    log("Input Linear Gain: " + std::to_string(inputGainLinear), logFile);
+    log("Output DB Gain: " + std::to_string(outputGainDB) + " dB", logFile);
+    log("Output Linear Gain: " + std::to_string(outputGainLinear), logFile);
+    log("Input WAV: " + inputWavFileName, logFile);
+    log("Input WAV cstr: " + std::string(inputWavFileName.c_str()), logFile);
+    log("Output WAV: " + outputWavFileName, logFile);
+    log("Output WAV cstr: " + std::string(outputWavFileName.c_str()), logFile);
+    log("Clipper Type: " + clipperType, logFile);
 
     // Open and initialize the input WAV file
     drwav wavIn;
     if (!drwav_init_file(&wavIn, inputWavFileName.c_str(), nullptr)) {
+        log("Failed to open input WAV file.", logFile);
         std::cerr << "Failed to open input WAV file.\n";
         return 1;
     }
@@ -168,7 +196,7 @@ int main(int argc, char** argv)
     // Read frames into a vector
     std::vector<int16_t> pcmSamples(wavIn.totalPCMFrameCount * wavIn.channels);
     drwav_uint64 framesRead = drwav_read_pcm_frames_s16(&wavIn, wavIn.totalPCMFrameCount, pcmSamples.data());
-    std::cout << "Frames Read: " << framesRead << "\n";
+    log("Frames Read: " + std::to_string(framesRead), logFile);
 
     // Vectors for sample processing
     std::vector<float> floatSamples(pcmSamples.size());
@@ -196,20 +224,27 @@ int main(int argc, char** argv)
 
     // Open output WAV file for writing
     drwav outWav;
-    std::cout << "Writing to: " << outputWavFileName << "\n";
+    log("Writing to: " + outputWavFileName, logFile);
     if (!drwav_init_file_write(&outWav, outputWavFileName.c_str(), &format, nullptr)) {
+        log("Failed to open output WAV file.", logFile);
         std::cerr << "Failed to open output WAV file.\n";
         return 1;
     }
-    std::cout << "Successfully opened output WAV file.\n";
+    log("Successfully opened output WAV file.", logFile);
 
     // Write frames to output wav
     drwav_uint64 framesWritten = drwav_write_pcm_frames(&outWav, framesRead, outputBuffer.data());
-    std::cout << "Frames Written: " << framesWritten << "\n";
+    log("Frames Written: " + std::to_string(framesWritten), logFile);
 
-    // // Cleanup
+    // Cleanup
     drwav_uninit(&wavIn);
     drwav_uninit(&outWav);
+    
+    // Close log file
+    if (logFile.is_open()) {
+        log("Processing completed successfully.", logFile);
+        logFile.close();
+    }
 
     return 0;
 }

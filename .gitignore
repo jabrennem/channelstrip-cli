@@ -6,6 +6,7 @@ csv/
 .DS_Store
 wav/
 dr_wav.h
+logs/
 
 # Compiled Object files
 *.slo
