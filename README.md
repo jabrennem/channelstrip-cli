@@ -46,11 +46,3 @@ Specify Input and Output Gain to drive the distortion and compensate output leve
 ```bash
 cat wav/input.wav | compiled/clipper --type smooth --input-gain 9.0 - > wav/output.wav
 ```
-
-<img src="./images/clipper_types_comparison.png" alt="Description of image" width="800">
-
-```bash
-comp --threshold '-18' --ratio 4 --attack 0.3 --release 0.1 | 
-eq --hpf-freq 30hz --lpf-f3req 12khz | 
-clipper --type hard --input-gain 10db --output-gain '-10db' > out.wav
-```
