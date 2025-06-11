@@ -46,3 +46,19 @@ Specify Input and Output Gain to drive the distortion and compensate output leve
 ```bash
 cat wav/input.wav | compiled/clipper --input-gain 9.0 --output-gain 3.0 - > wav/output.wav
 ```
+
+## Mix Control
+
+Control the blend between the dry (original) and wet (processed) signal.
+
+```bash
+cat wav/input.wav | compiled/clipper --mix 0.7 - > wav/output.wav
+```
+
+## Alpha Parameter
+
+Adjust the alpha parameter to control the shape of the smooth clipper curve.
+
+```bash
+cat wav/input.wav | compiled/clipper --type smooth --alpha 0.95 - > wav/output.wav
+```
