@@ -154,7 +154,7 @@ std::vector<uint8_t> read_stdin_fully() {
     return buffer;
 }
 
-int main(int argc, char** argv) {
+int clipper_main(int argc, char** argv) {
 
     // parse args and set parameters
     Args args = parseArgs(argc, argv);

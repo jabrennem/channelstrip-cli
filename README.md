@@ -16,20 +16,15 @@ Collection of audio processing tools designed for command-line pipe workflows.
 
 ## Tools
 
-- **clipper**: Audio clipping/saturation with various algorithms
+- **chst clipper**: Audio clipping/saturation with various algorithms
+- **chst eq**: Equalizer (coming soon)
 
 ## Build
 
-Build all tools:
+Build the chst binary:
 
 ```bash
 make all
-```
-
-Build individual tools:
-
-```bash
-make clipper
 ```
 
 # User Guide
@@ -43,13 +38,19 @@ make clipper
 Process streams with clipper using PIPE to another file. ✅
 
 ```bash
-cat wav/input.wav | bin/clipper - > output.wav
+cat wav/input.wav | bin/chst clipper - > output.wav
 ```
 
 Process streams with clipper using PIPE to a audio player such as play. ✅
 
 ```bash
-cat wav/input.wav | bin/clipper - | play -t wav -
+cat wav/input.wav | bin/chst clipper - | play -t wav -
+```
+
+Chain multiple effects together:
+
+```bash
+cat input.wav | bin/chst eq [eq args] | bin/chst clipper [clipper args] > out.wav
 ```
 
 ### Gain Compensation
@@ -57,7 +58,7 @@ cat wav/input.wav | bin/clipper - | play -t wav -
 Specify Input and Output Gain to drive the distortion and compensate output level afterwards.
 
 ```bash
-cat wav/input.wav | bin/clipper --input-gain 9.0 --output-gain 3.0 - > wav/output.wav
+cat wav/input.wav | bin/chst clipper --input-gain 9.0 --output-gain 3.0 - > wav/output.wav
 ```
 
 ### Mix Control
@@ -65,7 +66,7 @@ cat wav/input.wav | bin/clipper --input-gain 9.0 --output-gain 3.0 - > wav/outpu
 Control the blend between the dry (original) and wet (processed) signal.
 
 ```bash
-cat wav/input.wav | bin/clipper --mix 0.7 - > wav/output.wav
+cat wav/input.wav | bin/chst clipper --mix 0.7 - > wav/output.wav
 ```
 
 ## Clipper
@@ -85,8 +86,8 @@ cat wav/input.wav | bin/clipper --mix 0.7 - > wav/output.wav
 Clip a wav file using different clipping types.
 
 ```bash
-cat wav/input.wav | bin/clipper --type hard - > wav/output.wav
-cat wav/input.wav | bin/clipper --type smooth - > wav/output.wav
+cat wav/input.wav | bin/chst clipper --type hard - > wav/output.wav
+cat wav/input.wav | bin/chst clipper --type smooth - > wav/output.wav
 ```
 
 <img src="./images/clipper_types_comparison.png" alt="Description of image" width="500">
@@ -96,5 +97,5 @@ cat wav/input.wav | bin/clipper --type smooth - > wav/output.wav
 Adjust the alpha parameter to control the shape of the smooth clipper curve.
 
 ```bash
-cat wav/input.wav | bin/clipper --type smooth --alpha 0.95 - > wav/output.wav
+cat wav/input.wav | bin/chst clipper --type smooth --alpha 0.95 - > wav/output.wav
 ```
