@@ -13,8 +13,8 @@ logs/
 *.lo
 *.o
 *.obj
-clipper
 compiled/
+bin/
 
 # Precompiled Headers
 *.gch
