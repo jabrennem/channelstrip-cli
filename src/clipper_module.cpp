@@ -82,7 +82,7 @@ class TapeClipper {
          * @param mix Wet/dry mix ratio (0.0-1.0)
          */
         TapeClipper(
-            std::string clipType,
+            const std::string& clipType,
             float smoothing = 0.0f,
             float inputDrive = 1.0f,
             float outputVolume = 1.0f,
