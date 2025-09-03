@@ -31,7 +31,7 @@ Collection of audio processing tools designed for command-line pipe workflows.
 Build the chst binary:
 
 ```bash
-make all
+cmake -B build && cmake --build build
 ```
 
 # User Guide

@@ -17,7 +17,15 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Install Dependencies
-      run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+        # Install newer cmake if needed
+        sudo apt-get install -y cmake
+        # Ensure we have a C++17 compatible compiler
+        sudo apt-get install -y gcc-9 g++-9
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90
     
     - name: Configure CMake
       run: cmake -B build -DCMAKE_BUILD_TYPE=Release
@@ -40,7 +48,13 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Install Dependencies
-      run: sudo apt-get update && sudo apt-get install -y cmake doxygen graphviz
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake doxygen graphviz
+        # Ensure we have a C++17 compatible compiler
+        sudo apt-get install -y gcc-9 g++-9
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90
     
     - name: Configure CMake
       run: cmake -B build
