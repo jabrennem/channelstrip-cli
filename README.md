@@ -2,6 +2,8 @@
 
 Collection of audio processing tools designed for command-line pipe workflows.
 
+📖 **[API Documentation](https://jabrennem.github.io/channelstrip-cli/)**
+
 ## Table of Contents
 - [Tools](#tools)
 - [Build](#build)
