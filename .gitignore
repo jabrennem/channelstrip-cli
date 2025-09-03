@@ -1,44 +1,28 @@
-
-docs/
+# Build directories
 build/
-# Prerequisites
-*.d
-.vscode
-*.csv
-csv/
+build-*/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Binaries
+bin/chst
+
+# Documentation
+docs/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
 .DS_Store
-wav/
-dr_wav.h
-logs/
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-compiled/
-bin/
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
+# Temporary files
+*.tmp
+*~

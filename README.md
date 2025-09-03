@@ -4,6 +4,11 @@ Collection of audio processing tools designed for command-line pipe workflows.
 
 📖 **[API Documentation](https://jabrennem.github.io/channelstrip-cli/)**
 
+## Requirements
+- CMake
+- Doxygen
+- Sox Play
+
 ## Table of Contents
 - [Tools](#tools)
 - [Build](#build)
