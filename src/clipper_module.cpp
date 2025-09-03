@@ -1,3 +1,9 @@
+/**
+ * @file clipper_module.cpp
+ * @brief Audio clipping/saturation module with various algorithms
+ * @author ChannelStrip CLI
+ */
+
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
 
@@ -7,25 +13,41 @@
 #include <cmath>
 #include <algorithm>
 
-// hard clipper
+/**
+ * @brief Hard clipping function that limits signal to [-1.0, 1.0]
+ * @param x Input sample
+ * @return Clipped sample
+ */
 float hardClip(float x)
 {
     return std::clamp(x, -1.0f, 1.0f);
 }
 
-// soft clip - tanh clipper
+/**
+ * @brief Soft clipping using hyperbolic tangent function
+ * @param x Input sample
+ * @return Clipped sample using tanh curve
+ */
 float tanhClip(float x)
 {
     return std::tanh(x);
 }
 
-// soft clip - atan clipper
+/**
+ * @brief Soft clipping using arctangent function
+ * @param x Input sample
+ * @return Clipped sample using atan curve
+ */
 float atanClip(float x)
 {
     return std::atan(x);
 }
 
-// soft clip - cubic clipper
+/**
+ * @brief Cubic soft clipping function
+ * @param x Input sample
+ * @return Clipped sample using cubic polynomial
+ */
 float cubicClip(float x)
 {
     if (x < -1.0f) return -2.0f / 3.0f;
@@ -33,14 +55,32 @@ float cubicClip(float x)
     return x - (1.0f / 3.0f) * x * x * x;
 }
 
-// soft clip - x / (1 + |x|) 
+/**
+ * @brief Smooth clipping using x / (1 + |x|) formula
+ * @param x Input sample
+ * @return Smoothly clipped sample
+ */
 float smoothClip(float x)
 {
     return x / (1.0f + std::abs(x));
 }
 
+/**
+ * @brief Tape-style audio clipper with memory and various clipping algorithms
+ * 
+ * Provides audio saturation/clipping with configurable algorithms, input/output gain,
+ * smoothing (memory effect), and wet/dry mixing.
+ */
 class TapeClipper {
     public:
+        /**
+         * @brief Construct a new TapeClipper object
+         * @param clipType Clipping algorithm ("hard", "tanh", "atan", "cubic", "smooth")
+         * @param smoothing Smoothing factor for memory effect (0.0-1.0)
+         * @param inputDrive Input gain multiplier
+         * @param outputVolume Output gain multiplier
+         * @param mix Wet/dry mix ratio (0.0-1.0)
+         */
         TapeClipper(
             std::string clipType,
             float smoothing = 0.0f,
@@ -57,6 +97,11 @@ class TapeClipper {
                 clipFunc = getClipFunc(clipType);
             }
         
+        /**
+         * @brief Process a single audio sample through the clipper
+         * @param x Input sample
+         * @return Processed sample with clipping, smoothing, and mixing applied
+         */
         float processSample(float x) 
         {
             // apply input gain
@@ -82,7 +127,11 @@ class TapeClipper {
         float (*clipFunc)(float); // the saturation type
         float wetDryMix;
 
-        // Create a funciton that returns a function based on a string argument
+        /**
+         * @brief Get clipping function pointer based on type string
+         * @param clipType String identifier for clipping algorithm
+         * @return Function pointer to the appropriate clipping function
+         */
         float (*getClipFunc(const std::string& clipType))(float) {
             if (clipType == "hard") return hardClip;
             else if (clipType == "tanh") return tanhClip;
@@ -97,26 +146,43 @@ class TapeClipper {
 
 };
 
-// Convert 16-bit PCM to float (-1.0 to 1.0)
+/**
+ * @brief Convert 16-bit PCM sample to normalized float
+ * @param sample 16-bit PCM sample
+ * @return Normalized float sample (-1.0 to 1.0)
+ */
 float pcm16ToFloat(int16_t sample) {
     return static_cast<float>(sample) / 32768.0f;
 }
 
-// Convert float (-1.0 to 1.0) to 16-bit PCM
+/**
+ * @brief Convert normalized float sample to 16-bit PCM
+ * @param sample Normalized float sample (-1.0 to 1.0)
+ * @return 16-bit PCM sample
+ */
 int16_t floatToPcm16(float sample) {
     sample = std::clamp(sample, -1.0f, 1.0f);
     return static_cast<int16_t>(sample * 32767.0f);
 }
 
+/**
+ * @brief Command line arguments structure for clipper module
+ */
 struct Args {
-    bool streamMode = false;
-    std::string clipType = "hard";
-    float inputGainDB = 0.0f;
-    float outputGainDB = 0.0f;
-    float alpha = 0.0f; // no memory only saturation
-    float mix = 1.0f; // wet signal
+    bool streamMode = false;      ///< Stream processing mode flag
+    std::string clipType = "hard"; ///< Clipping algorithm type
+    float inputGainDB = 0.0f;     ///< Input gain in decibels
+    float outputGainDB = 0.0f;    ///< Output gain in decibels
+    float alpha = 0.0f;           ///< Smoothing factor (0.0 = no memory)
+    float mix = 1.0f;             ///< Wet/dry mix (1.0 = fully wet)
 };
 
+/**
+ * @brief Parse command line arguments for clipper module
+ * @param argc Argument count
+ * @param argv Argument vector
+ * @return Parsed arguments structure
+ */
 Args parseArgs(int argc, char** argv) {
     Args args;
     
@@ -134,17 +200,30 @@ Args parseArgs(int argc, char** argv) {
     return args;
 }
 
-// create function that converts db into linear gain
+/**
+ * @brief Convert decibel value to linear gain
+ * @param db Gain in decibels
+ * @return Linear gain multiplier
+ */
 float dbToGain(float db) {
     return powf(10.0f, db / 20.0f);
 }
 
-// Write callback for stdout
+/**
+ * @brief Write callback function for stdout output
+ * @param pUserData User data pointer (FILE*)
+ * @param pData Data to write
+ * @param bytesToWrite Number of bytes to write
+ * @return Number of bytes written
+ */
 size_t write_stdout(void* pUserData, const void* pData, size_t bytesToWrite) {
     return fwrite(pData, 1, bytesToWrite, (FILE*)pUserData);
 }
 
-// Optional: read entire stdin
+/**
+ * @brief Read entire stdin into memory buffer
+ * @return Vector containing all stdin data
+ */
 std::vector<uint8_t> read_stdin_fully() {
     std::vector<uint8_t> buffer;
     char chunk[4096];
@@ -154,6 +233,16 @@ std::vector<uint8_t> read_stdin_fully() {
     return buffer;
 }
 
+/**
+ * @brief Main function for clipper module
+ * 
+ * Processes WAV audio from stdin, applies clipping/saturation effects,
+ * and outputs processed audio to stdout.
+ * 
+ * @param argc Argument count
+ * @param argv Argument vector
+ * @return Exit status code (0 for success, 1 for error)
+ */
 int clipper_main(int argc, char** argv) {
 
     // parse args and set parameters

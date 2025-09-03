@@ -1,3 +1,6 @@
+
+docs/
+build/
 # Prerequisites
 *.d
 .vscode

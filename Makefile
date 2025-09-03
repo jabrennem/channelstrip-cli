@@ -9,9 +9,10 @@ BIN_DIR := bin
 BUILD_DIR := build
 INCLUDE_DIR := include
 SRC_DIR := src
+DOCS_DIR := docs
 
 # Create directories
-$(shell mkdir -p $(BIN_DIR) $(BUILD_DIR))
+$(shell mkdir -p $(BIN_DIR) $(BUILD_DIR) $(INCLUDE_DIR))
 
 # Source files
 SRCS := chst.cpp clipper_module.cpp eq_module.cpp
@@ -34,8 +35,19 @@ $(TARGET): $(OBJS)
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $< -o $@
 
+# Generate documentation
+docs:
+	doxygen Doxyfile
+
 # Clean all
 clean:
 	rm -rf $(BUILD_DIR)/* $(BIN_DIR)/*
 
-.PHONY: all deps clean
+# Clean documentation
+clean-docs:
+	rm -rf $(DOCS_DIR)
+
+# Clean everything including docs
+clean-all: clean clean-docs
+
+.PHONY: all deps clean docs clean-docs clean-all
