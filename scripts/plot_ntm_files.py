@@ -21,14 +21,19 @@ def plot_csv_file(file_path):
     # Create a figure with a reasonable size
     plt.figure(figsize=(10, 6))
     
-    # Plot each column as a separate line
-    for column in df.columns:
-        plt.plot(df[column], label=column)
+    # Plot input and output if they exist, otherwise plot all columns
+    if 'input' in df.columns and 'output' in df.columns:
+        plt.plot(df['input'], label='Input', alpha=0.7)
+        plt.plot(df['output'], label='Output', alpha=0.7)
+    else:
+        for column in df.columns:
+            if column != 'sample':
+                plt.plot(df[column], label=column)
     
     # Add labels and title
     plt.title(f"Plot of {name_without_ext}")
     plt.xlabel("Sample Index")
-    plt.ylabel("Value")
+    plt.ylabel("Amplitude")
     plt.legend()
     plt.grid(True)
     
@@ -40,28 +45,20 @@ def plot_csv_file(file_path):
     print(f"Plot saved to {output_path}")
 
 def main():
-    # Get the directory of this script
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-
-    # get parent path of script directory
-    parent_dir = os.path.dirname(script_dir)
+    import sys
     
-    # Path to the csv directory
-    csv_dir = os.path.join(parent_dir, "csv")
-    
-    # Find all NTM_* CSV files
-    ntm_files = glob.glob(os.path.join(csv_dir, "NTM_*.csv"))
-    
-    if not ntm_files:
-        print("No NTM_* CSV files found in the csv directory.")
+    if len(sys.argv) != 2:
+        print("Usage: python plot_ntm_files.py <csv_file_path>")
         return
     
-    print(f"Found {len(ntm_files)} NTM_* CSV files.")
+    file_path = sys.argv[1]
     
-    # Plot each file
-    for file_path in ntm_files:
-        print(f"Processing {os.path.basename(file_path)}...")
-        plot_csv_file(file_path)
+    if not os.path.exists(file_path):
+        print(f"File not found: {file_path}")
+        return
+    
+    print(f"Processing {os.path.basename(file_path)}...")
+    plot_csv_file(file_path)
 
 if __name__ == "__main__":
     main()

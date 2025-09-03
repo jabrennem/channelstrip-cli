@@ -12,6 +12,7 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
+#include <fstream>
 
 /**
  * @brief Hard clipping function that limits signal to [-1.0, 1.0]
@@ -175,6 +176,7 @@ struct Args {
     float outputGainDB = 0.0f;    ///< Output gain in decibels
     float alpha = 0.0f;           ///< Smoothing factor (0.0 = no memory)
     float mix = 1.0f;             ///< Wet/dry mix (1.0 = fully wet)
+    std::string outputCsv = "";   ///< CSV output file path
 };
 
 /**
@@ -195,6 +197,7 @@ Args parseArgs(int argc, char** argv) {
         if (arg == "--output-gain" && i + 1 < argc) args.outputGainDB = std::stof(argv[++i]);
         if (arg == "--alpha" && i + 1 < argc) args.alpha = std::stof(argv[++i]);
         if (arg == "--mix" && i + 1 < argc) args.mix = std::stof(argv[++i]);
+        if (arg == "--output-csv" && i + 1 < argc) args.outputCsv = argv[++i];
     }
     
     return args;
@@ -285,15 +288,31 @@ int clipper_main(int argc, char** argv) {
     format.sampleRate = wav.sampleRate;
     format.bitsPerSample = 16;
 
-    // write pcm frames to stdout
-    drwav outWav;
-    if (!drwav_init_write_sequential(&outWav, &format, framesRead * wav.channels, write_stdout, stdout, nullptr)) {
-        fprintf(stderr, "Failed to init WAV writer to stdout\n");
-        return 1;
+    // write pcm frames to stdout only if CSV output is not requested
+    if (args.outputCsv.empty()) {
+        drwav outWav;
+        if (!drwav_init_write_sequential(&outWav, &format, framesRead * wav.channels, write_stdout, stdout, nullptr)) {
+            fprintf(stderr, "Failed to init WAV writer to stdout\n");
+            return 1;
+        }
+
+        drwav_write_pcm_frames(&outWav, framesRead, outputBuffer.data());
+        drwav_uninit(&outWav);
     }
 
-    drwav_write_pcm_frames(&outWav, framesRead, outputBuffer.data());
-    drwav_uninit(&outWav);
+    // Write CSV output if requested
+    if (!args.outputCsv.empty()) {
+        std::ofstream csvFile(args.outputCsv);
+        if (csvFile.is_open()) {
+            csvFile << "sample,input,output\n";
+            for (size_t i = 0; i < clippedSamples.size(); ++i) {
+                csvFile << i << "," << floatSamples[i] << "," << clippedSamples[i] << "\n";
+            }
+            csvFile.close();
+        } else {
+            fprintf(stderr, "Failed to open CSV file: %s\n", args.outputCsv.c_str());
+        }
+    }
 
     return 0;
 }

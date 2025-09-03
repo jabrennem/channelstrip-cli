@@ -87,6 +87,7 @@ cat wav/input.wav | bin/chst clipper --mix 0.7 - > wav/output.wav
 | `--output-gain` | Output gain in dB | `0.0` | Any float |
 | `--alpha` | Smoothing factor | `0.0` | `0.0` - `1.0` |
 | `--mix` | Wet/dry mix | `1.0` | `0.0` - `1.0` |
+| `--output-csv` | CSV output file path | None | Any valid file path |
 
 #### Type
 
@@ -105,4 +106,18 @@ Adjust the alpha parameter to control the shape of the smooth clipper curve.
 
 ```bash
 cat wav/input.wav | bin/chst clipper --type smooth --alpha 0.95 - > wav/output.wav
+```
+
+#### CSV Output
+
+Export processed audio data to CSV for analysis and visualization.
+
+```bash
+cat wav/input.wav | bin/chst clipper --output-csv csv/clipped.csv -
+```
+
+Generate a plot from the CSV data:
+
+```bash
+python scripts/plot_ntm_files.py csv/clipped.csv
 ```
