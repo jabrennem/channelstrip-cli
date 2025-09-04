@@ -6,6 +6,7 @@
 
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
+#include "audio_utils.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -147,24 +148,7 @@ class TapeClipper {
 
 };
 
-/**
- * @brief Convert 16-bit PCM sample to normalized float
- * @param sample 16-bit PCM sample
- * @return Normalized float sample (-1.0 to 1.0)
- */
-float pcm16ToFloat(int16_t sample) {
-    return static_cast<float>(sample) / 32768.0f;
-}
 
-/**
- * @brief Convert normalized float sample to 16-bit PCM
- * @param sample Normalized float sample (-1.0 to 1.0)
- * @return 16-bit PCM sample
- */
-int16_t floatToPcm16(float sample) {
-    sample = std::clamp(sample, -1.0f, 1.0f);
-    return static_cast<int16_t>(sample * 32767.0f);
-}
 
 /**
  * @brief Command line arguments structure for clipper module
@@ -203,38 +187,9 @@ Args parseArgs(int argc, char** argv) {
     return args;
 }
 
-/**
- * @brief Convert decibel value to linear gain
- * @param db Gain in decibels
- * @return Linear gain multiplier
- */
-float dbToGain(float db) {
-    return powf(10.0f, db / 20.0f);
-}
 
-/**
- * @brief Write callback function for stdout output
- * @param pUserData User data pointer (FILE*)
- * @param pData Data to write
- * @param bytesToWrite Number of bytes to write
- * @return Number of bytes written
- */
-size_t write_stdout(void* pUserData, const void* pData, size_t bytesToWrite) {
-    return fwrite(pData, 1, bytesToWrite, (FILE*)pUserData);
-}
 
-/**
- * @brief Read entire stdin into memory buffer
- * @return Vector containing all stdin data
- */
-std::vector<uint8_t> read_stdin_fully() {
-    std::vector<uint8_t> buffer;
-    char chunk[4096];
-    while (size_t n = fread(chunk, 1, sizeof(chunk), stdin)) {
-        buffer.insert(buffer.end(), chunk, chunk + n);
-    }
-    return buffer;
-}
+
 
 /**
  * @brief Main function for clipper module
@@ -253,64 +208,34 @@ int clipper_main(int argc, char** argv) {
     float inputGainLinear = dbToGain(args.inputGainDB);
     float outputGainLinear = dbToGain(args.outputGainDB);
 
-    // read stdin
-    auto input = read_stdin_fully();
-    drwav wav;
-    if (!drwav_init_memory(&wav, input.data(), input.size(), nullptr)) {
-        fprintf(stderr, "Failed to read WAV from stdin\n");
+    // read audio from stdin
+    AudioData audioData = readWavFromStdin();
+    if (audioData.samples.empty()) {
         return 1;
     }
 
-    // read pcm frames
-    std::vector<int16_t> pcmData(wav.totalPCMFrameCount * wav.channels);
-    size_t framesRead = drwav_read_pcm_frames_s16(&wav, wav.totalPCMFrameCount, pcmData.data());
-    drwav_uninit(&wav);
-
-    // Vectors for sample processing
-    std::vector<float> floatSamples(pcmData.size());
-    std::vector<float> clippedSamples(pcmData.size());
-    std::vector<int16_t> outputBuffer(pcmData.size());
-
-    // Convert to float, Clip, and convert back to pcm16
+    // Process samples
+    std::vector<float> floatSamples(audioData.samples.size());
+    std::vector<float> clippedSamples(audioData.samples.size());
+    
     TapeClipper clipper(args.clipType, args.alpha, inputGainLinear, outputGainLinear, args.mix);
-    for (size_t i = 0; i < pcmData.size(); ++i)
-    {
-        floatSamples[i] = pcm16ToFloat(pcmData[i]);
+    for (size_t i = 0; i < audioData.samples.size(); ++i) {
+        floatSamples[i] = pcm16ToFloat(audioData.samples[i]);
         clippedSamples[i] = clipper.processSample(floatSamples[i]);
-        outputBuffer[i] = floatToPcm16(clippedSamples[i]);
+        audioData.samples[i] = floatToPcm16(clippedSamples[i]);
     }
 
-    // Format settings
-    drwav_data_format format;
-    format.container = drwav_container_riff;
-    format.format = DR_WAVE_FORMAT_PCM;
-    format.channels = wav.channels;
-    format.sampleRate = wav.sampleRate;
-    format.bitsPerSample = 16;
-
-    // write pcm frames to stdout only if CSV output is not requested
+    // Write audio to stdout if CSV output is not requested
     if (args.outputCsv.empty()) {
-        drwav outWav;
-        if (!drwav_init_write_sequential(&outWav, &format, framesRead * wav.channels, write_stdout, stdout, nullptr)) {
-            fprintf(stderr, "Failed to init WAV writer to stdout\n");
+        if (!writeWavToStdout(audioData)) {
             return 1;
         }
-
-        drwav_write_pcm_frames(&outWav, framesRead, outputBuffer.data());
-        drwav_uninit(&outWav);
     }
 
-    // Write CSV output if requested
+    // Export to CSV if requested
     if (!args.outputCsv.empty()) {
-        std::ofstream csvFile(args.outputCsv);
-        if (csvFile.is_open()) {
-            csvFile << "sample,input,output\n";
-            for (size_t i = 0; i < clippedSamples.size(); ++i) {
-                csvFile << i << "," << floatSamples[i] << "," << clippedSamples[i] << "\n";
-            }
-            csvFile.close();
-        } else {
-            fprintf(stderr, "Failed to open CSV file: %s\n", args.outputCsv.c_str());
+        if (!exportToCsv(args.outputCsv, floatSamples, clippedSamples)) {
+            return 1;
         }
     }
 

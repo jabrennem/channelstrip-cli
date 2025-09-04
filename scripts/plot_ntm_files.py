@@ -38,7 +38,7 @@ def plot_csv_file(file_path):
     plt.grid(True)
     
     # Save the plot
-    output_path = os.path.join(os.path.dirname(file_path), f"../images/{name_without_ext}_plot.png")
+    output_path = os.path.join(f"./images/{name_without_ext}_plot.png")
     plt.savefig(output_path)
     plt.close()
     

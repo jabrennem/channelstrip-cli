@@ -1,3 +1,5 @@
+include/dr_wav.h
+
 # Build directories
 build/
 build-*/

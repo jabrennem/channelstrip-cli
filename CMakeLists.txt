@@ -30,6 +30,7 @@ set(SOURCES
     ${SRC_DIR}/chst.cpp
     ${SRC_DIR}/clipper_module.cpp
     ${SRC_DIR}/eq_module.cpp
+    ${SRC_DIR}/audio_utils.cpp
 )
 
 # Create executable
