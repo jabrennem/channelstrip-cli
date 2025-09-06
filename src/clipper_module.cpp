@@ -6,6 +6,7 @@
 
 #include "audio_utils.h"
 #include "common_args.h"
+#include "processor.h"
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -66,64 +67,51 @@ float smoothClip(float x)
 /**
  * @brief Tape-style audio clipper with memory and various clipping algorithms
  * 
- * Provides audio saturation/clipping with configurable algorithms, input/output gain,
- * smoothing (memory effect), and wet/dry mixing.
+ * Provides audio saturation/clipping with configurable algorithms and smoothing (memory effect).
  */
-class TapeClipper {
+class TapeClipper : public Processor {
     public:
         /**
          * @brief Construct a new TapeClipper object
          * @param clipType Clipping algorithm ("hard", "tanh", "atan", "cubic", "smooth")
          * @param smoothing Smoothing factor for memory effect (0.0-1.0)
-         * @param inputDrive Input gain multiplier
-         * @param outputVolume Output gain multiplier
+         * @param inputGain Input gain multiplier
+         * @param outputGain Output gain multiplier
          * @param mix Wet/dry mix ratio (0.0-1.0)
          */
         TapeClipper(
             const std::string& clipType,
             float smoothing = 0.0f,
-            float inputDrive = 1.0f,
-            float outputVolume = 1.0f,
+            float inputGain = 1.0f,
+            float outputGain = 1.0f,
             float mix = 1.0f
         )
-        : inputGain(inputDrive),
-            outputGain(outputVolume),
-            alpha(smoothing), 
-            y_prev(0.0f),
-            wetDryMix(std::clamp(mix, 0.0f, 1.0f))
-            {
-                clipFunc = getClipFunc(clipType);
-            }
-        
+        : Processor(inputGain, outputGain, mix),
+          alpha(smoothing), 
+          y_prev(0.0f)
+        {
+            clipFunc = getClipFunc(clipType);
+        }
+
         /**
          * @brief Process a single audio sample through the clipper
          * @param x Input sample
-         * @return Processed sample with clipping, smoothing, and mixing applied
+         * @return Processed sample with clipping, smoothing, gain and mix applied
          */
-        float processSample(float x) 
+        float processSample(float x) override
         {
-            // apply input gain
             float driven = x * inputGain;
-            // saturate
             float saturated = clipFunc(driven);
-            // add memory affect - low pass filtering (simple feedback)
-            float y = alpha * y_prev + (1.0 - alpha) * saturated;
-            // set memory
+            float y = alpha * y_prev + (1.0f - alpha) * saturated;
             y_prev = y;
-            // apply output gain
-            float output = y / outputGain;
-            // mix wet and dry signals
-            float wetDry = wetDryMix * output + (1.0 - wetDryMix) * x;
-            return wetDry;
+            float output = y * outputGain;
+            return wetDryMix * output + (1.0f - wetDryMix) * x;
         }
 
     private:
-        float inputGain;
-        float outputGain;
         float alpha; // Smoothing factor (0.0 to 1.0) – higher means more memory
         float y_prev; // Previous output (memory state)
         float (*clipFunc)(float); // the saturation type
-        float wetDryMix;
 
         /**
          * @brief Get clipping function pointer based on type string

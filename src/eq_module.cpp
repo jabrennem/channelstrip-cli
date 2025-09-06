@@ -2,6 +2,7 @@
 #include <cstdio>
 #include "audio_utils.h"
 #include "common_args.h"
+#include "processor.h"
 
 struct EqArgs : BaseArgs {
     float highPassFilterFreq = 0.0f;
@@ -35,6 +36,25 @@ struct EqArgs : BaseArgs {
     }
 };
 
+class Eq : public Processor {
+public:
+    Eq(
+        float highPassFilterFreq = 0.0f,
+        float lowPassFilterFreq = 0.0f,
+        float inputGain = 1.0f,
+        float outputGain = 1.0f,
+        float mix = 1.0f
+    )
+    : Processor(inputGain, outputGain, mix)
+    {
+
+    }
+
+    float processSample(float x) override {
+        return x;
+    }
+    
+};
 
 int eq_main(int argc, char** argv) {
 
@@ -51,6 +71,35 @@ int eq_main(int argc, char** argv) {
     AudioData audioData = readWavFromStdin();
     if (audioData.samples.empty()) {
         return 1;
+    }
+
+    // initialize variables for processing
+    std::vector<float> floatSamples(audioData.samples.size());
+    std::vector<float> processedSamples(audioData.samples.size());
+    Eq eq(
+        args.highPassFilterFreq,
+        args.lowPassFilterFreq,
+        args.getInputGainLinear(),
+        args.getOutputGainLinear(),
+        args.mix
+    );
+
+    // process samples
+    for (size_t i = 0; i < audioData.samples.size(); ++i) {
+        floatSamples[i] = pcm16ToFloat(audioData.samples[i]);
+        processedSamples[i] = eq.processSample(floatSamples[i]);
+        audioData.samples[i] = floatToPcm16(processedSamples[i]);
+    }
+
+    //  Write audio to stdout or Export to CSV if requested
+    if (args.shouldExportCsv()) {
+        if (!exportToCsv(args.outputCsv, floatSamples, processedSamples)) {
+            return 1;
+        }
+    } else {
+        if (!writeWavToStdout(audioData)) {
+            return 1;
+        }
     }
 
     return 1;
