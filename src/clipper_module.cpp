@@ -4,16 +4,12 @@
  * @author ChannelStrip CLI
  */
 
-#define DR_WAV_IMPLEMENTATION
-#include "dr_wav.h"
 #include "audio_utils.h"
-
-#include <cstdio>
-#include <cstdlib>
+#include "common_args.h"
+#include <iostream>
 #include <vector>
 #include <cmath>
 #include <algorithm>
-#include <fstream>
 
 /**
  * @brief Hard clipping function that limits signal to [-1.0, 1.0]
@@ -148,48 +144,48 @@ class TapeClipper {
 
 };
 
-
-
 /**
  * @brief Command line arguments structure for clipper module
  */
-struct Args {
-    bool streamMode = false;      ///< Stream processing mode flag
+struct ClipperArgs : BaseArgs {
     std::string clipType = "hard"; ///< Clipping algorithm type
-    float inputGainDB = 0.0f;     ///< Input gain in decibels
-    float outputGainDB = 0.0f;    ///< Output gain in decibels
     float alpha = 0.0f;           ///< Smoothing factor (0.0 = no memory)
-    float mix = 1.0f;             ///< Wet/dry mix (1.0 = fully wet)
-    std::string outputCsv = "";   ///< CSV output file path
-};
-
-/**
- * @brief Parse command line arguments for clipper module
- * @param argc Argument count
- * @param argv Argument vector
- * @return Parsed arguments structure
- */
-Args parseArgs(int argc, char** argv) {
-    Args args;
     
-    // Parse command line arguments
-    for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
-        if (arg == "-") args.streamMode = true;
-        if (arg == "--type" && i + 1 < argc) args.clipType = argv[++i];
-        if (arg == "--input-gain" && i + 1 < argc) args.inputGainDB = std::stof(argv[++i]);
-        if (arg == "--output-gain" && i + 1 < argc) args.outputGainDB = std::stof(argv[++i]);
-        if (arg == "--alpha" && i + 1 < argc) args.alpha = std::stof(argv[++i]);
-        if (arg == "--mix" && i + 1 < argc) args.mix = std::stof(argv[++i]);
-        if (arg == "--output-csv" && i + 1 < argc) args.outputCsv = argv[++i];
+    // Clipper-specific methods
+    bool isValidClipType() const {
+        return clipType == "hard" || clipType == "smooth" || 
+               clipType == "tanh" || clipType == "atan" || clipType == "cubic";
     }
     
-    return args;
-}
-
-
-
-
+    void parseArgs(int argc, char** argv) {
+        int i = parseCommonArgs(argc, argv);
+        
+        // Parse clipper-specific arguments
+        for (; i < argc; ++i) {
+            std::string arg = argv[i];
+            if (arg == "--type" && i + 1 < argc) {
+                clipType = argv[++i];
+            } else if (arg == "--alpha" && i + 1 < argc) {
+                alpha = std::stof(argv[++i]);
+            }
+        }
+    }
+    
+    void printHelp() const {
+        std::cout << "Usage: chst clipper [options] -\n";
+        std::cout << "\nAudio clipping/saturation with various algorithms\n\n";
+        
+        std::cout << "Clipper-specific options:\n";
+        std::cout << "  --type TYPE        Clipping algorithm (hard, smooth, tanh, atan, cubic) [default: hard]\n";
+        std::cout << "  --alpha VALUE      Smoothing factor (0.0-1.0) [default: 0.0]\n\n";
+        
+        printCommonHelp();
+        
+        std::cout << "\nExamples:\n";
+        std::cout << "  cat input.wav | chst clipper - > output.wav\n";
+        std::cout << "  cat input.wav | chst clipper --type smooth --alpha 0.5 - | play -t wav -\n";
+    }
+};
 
 /**
  * @brief Main function for clipper module
@@ -204,9 +200,13 @@ Args parseArgs(int argc, char** argv) {
 int clipper_main(int argc, char** argv) {
 
     // parse args and set parameters
-    Args args = parseArgs(argc, argv);
-    float inputGainLinear = dbToGain(args.inputGainDB);
-    float outputGainLinear = dbToGain(args.outputGainDB);
+    ClipperArgs args;
+    args.parseArgs(argc, argv);
+    
+    if (args.showHelp) {
+        args.printHelp();
+        return 0;
+    }
 
     // read audio from stdin
     AudioData audioData = readWavFromStdin();
@@ -218,7 +218,7 @@ int clipper_main(int argc, char** argv) {
     std::vector<float> floatSamples(audioData.samples.size());
     std::vector<float> clippedSamples(audioData.samples.size());
     
-    TapeClipper clipper(args.clipType, args.alpha, inputGainLinear, outputGainLinear, args.mix);
+    TapeClipper clipper(args.clipType, args.alpha, args.getInputGainLinear(), args.getOutputGainLinear(), args.mix);
     for (size_t i = 0; i < audioData.samples.size(); ++i) {
         floatSamples[i] = pcm16ToFloat(audioData.samples[i]);
         clippedSamples[i] = clipper.processSample(floatSamples[i]);
@@ -226,14 +226,14 @@ int clipper_main(int argc, char** argv) {
     }
 
     // Write audio to stdout if CSV output is not requested
-    if (args.outputCsv.empty()) {
+    if (!args.shouldExportCsv()) {
         if (!writeWavToStdout(audioData)) {
             return 1;
         }
     }
 
     // Export to CSV if requested
-    if (!args.outputCsv.empty()) {
+    if (args.shouldExportCsv()) {
         if (!exportToCsv(args.outputCsv, floatSamples, clippedSamples)) {
             return 1;
         }

@@ -3,6 +3,7 @@
  * @brief Implementation of shared audio processing utilities
  */
 
+#define DR_WAV_IMPLEMENTATION
 #include "audio_utils.h"
 #include <cstdio>
 #include <cmath>
