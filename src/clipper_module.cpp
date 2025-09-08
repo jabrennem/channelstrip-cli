@@ -147,18 +147,30 @@ struct ClipperArgs : BaseArgs {
                clipType == "tanh" || clipType == "atan" || clipType == "cubic";
     }
     
-    void parseArgs(int argc, char** argv) {
-        int i = parseCommonArgs(argc, argv);
-        
-        // Parse clipper-specific arguments
-        for (; i < argc; ++i) {
+    bool parseArgs(int argc, char** argv) {
+        // Parse all arguments in one pass
+        for (int i = 1; i < argc; ++i) {
             std::string arg = argv[i];
-            if (arg == "--type" && i + 1 < argc) {
+            if (arg == "-" || arg == "--stream") {
+                streamMode = true;
+            } else if (arg == "--help" || arg == "-h") {
+                showHelp = true;
+            } else if ((arg == "--input-gain" || arg == "-i") && i + 1 < argc) {
+                inputGainDB = std::stof(argv[++i]);
+            } else if ((arg == "--output-gain" || arg == "-o") && i + 1 < argc) {
+                outputGainDB = std::stof(argv[++i]);
+            } else if ((arg == "--mix" || arg == "-m") && i + 1 < argc) {
+                mix = std::stof(argv[++i]);
+            } else if ((arg == "--output-csv" || arg == "-c") && i + 1 < argc) {
+                outputCsv = argv[++i];
+            } else if (arg == "--type" && i + 1 < argc) {
                 clipType = argv[++i];
             } else if (arg == "--alpha" && i + 1 < argc) {
                 alpha = std::stof(argv[++i]);
             }
         }
+        
+        return validateCommonArgs();
     }
     
     void printHelp() const {
@@ -191,7 +203,9 @@ int clipper_main(int argc, char** argv) {
 
     // parse args and set parameters
     ClipperArgs args;
-    args.parseArgs(argc, argv);
+    if (!args.parseArgs(argc, argv)) {
+        return 1;
+    }
     
     if (args.showHelp) {
         args.printHelp();

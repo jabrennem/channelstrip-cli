@@ -47,15 +47,26 @@ struct BaseArgs {
                 return i;
             }
         }
+        
         return argc; // All arguments were parsed
+    }
+    
+    // Validate common arguments
+    bool validateCommonArgs() const {
+        if (!showHelp && !streamMode && outputCsv.empty()) {
+            std::cerr << "Error: Either stream mode (-) or CSV output (--output-csv) must be specified\n";
+            return false;
+        }
+        return true;
     }
     
     virtual void printCommonHelp() const {
         std::cout << "Common options:\n";
+        std::cout << "  -                  Stream mode (required if no --output-csv)\n";
         std::cout << "  --input-gain DB    Input gain in dB [default: 0.0]\n";
         std::cout << "  --output-gain DB   Output gain in dB [default: 0.0]\n";
         std::cout << "  --mix VALUE        Wet/dry mix (0.0-1.0) [default: 1.0]\n";
-        std::cout << "  --output-csv FILE  Export to CSV file\n";
+        std::cout << "  --output-csv FILE  Export to CSV file (required if no -)\n";
         std::cout << "  --help             Show this help message\n";
     }
     

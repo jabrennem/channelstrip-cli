@@ -1,5 +1,7 @@
 include/dr_wav.h
 
+images/
+
 # Build directories
 build/
 build-*/
