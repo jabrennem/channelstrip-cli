@@ -6,6 +6,7 @@
 #pragma once
 
 #include <algorithm>
+#include <vector>
 
 /**
  * @brief Base class for all audio processors
@@ -27,26 +28,34 @@ public:
           wetDryMix(std::clamp(mix, 0.0f, 1.0f)) {}
 
     /**
-     * @brief Process sample method to be implemented by derived classes
-     * @param x Input sample
-     * @return Processed sample
+     * @brief Process samples method to be implemented by derived classes
+     * @param samples Input/output samples vector
      */
-    virtual float processSample(float x) = 0;
+    virtual void processSamples(std::vector<float>& samples) = 0;
 
     virtual ~Processor() = default;
 
 protected:
     /**
      * @brief Common processing flow: input gain, processing, output gain, mix
-     * @param x Input sample
+     * @param samples Input/output samples vector
      * @param processFunc Function to apply the specific DSP algorithm
-     * @return Processed sample with gain and mix applied
      */
-    float processInternal(float x, float (*processFunc)(float)) {
-        float driven = x * inputGain;
-        float processed = processFunc(driven);
-        float output = processed * outputGain;
-        return wetDryMix * output + (1.0f - wetDryMix) * x;
+    void processInternal(std::vector<float>& samples, void (*processFunc)(std::vector<float>&)) {
+        std::vector<float> original = samples;
+        
+        // Apply input gain
+        for (float& sample : samples) {
+            sample *= inputGain;
+        }
+        
+        // Apply processing
+        processFunc(samples);
+        
+        // Apply output gain and mix
+        for (size_t i = 0; i < samples.size(); ++i) {
+            samples[i] = wetDryMix * (samples[i] * outputGain) + (1.0f - wetDryMix) * original[i];
+        }
     }
 
     float inputGain;

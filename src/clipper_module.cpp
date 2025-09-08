@@ -94,18 +94,20 @@ class TapeClipper : public Processor {
         }
 
         /**
-         * @brief Process a single audio sample through the clipper
-         * @param x Input sample
-         * @return Processed sample with clipping, smoothing, gain and mix applied
+         * @brief Process audio samples through the clipper
+         * @param samples Input/output samples vector
          */
-        float processSample(float x) override
+        void processSamples(std::vector<float>& samples) override
         {
-            float driven = x * inputGain;
-            float saturated = clipFunc(driven);
-            float y = alpha * y_prev + (1.0f - alpha) * saturated;
-            y_prev = y;
-            float output = y * outputGain;
-            return wetDryMix * output + (1.0f - wetDryMix) * x;
+            std::vector<float> original = samples;
+            for (size_t i = 0; i < samples.size(); ++i) {
+                float driven = samples[i] * inputGain;
+                float saturated = clipFunc(driven);
+                float y = alpha * y_prev + (1.0f - alpha) * saturated;
+                y_prev = y;
+                float output = y * outputGain;
+                samples[i] = wetDryMix * output + (1.0f - wetDryMix) * original[i];
+            }
         }
 
     private:
@@ -202,16 +204,20 @@ int clipper_main(int argc, char** argv) {
         return 1;
     }
 
-    // Process samples
-    std::vector<float> floatSamples(audioData.samples.size());
-    std::vector<float> clippedSamples(audioData.samples.size());
+    // Initialize variables for processing
+    TapeClipper clipper(
+        args.clipType, 
+        args.alpha, 
+        args.getInputGainLinear(), 
+        args.getOutputGainLinear(), 
+        args.mix
+    );
     
-    TapeClipper clipper(args.clipType, args.alpha, args.getInputGainLinear(), args.getOutputGainLinear(), args.mix);
-    for (size_t i = 0; i < audioData.samples.size(); ++i) {
-        floatSamples[i] = pcm16ToFloat(audioData.samples[i]);
-        clippedSamples[i] = clipper.processSample(floatSamples[i]);
-        audioData.samples[i] = floatToPcm16(clippedSamples[i]);
-    }
+    // process samples
+    std::vector<float> originalSamples = audioData.fromPcm16ToFloat();
+    std::vector<float> clippedSamples = originalSamples;
+    clipper.processSamples(clippedSamples);
+    audioData.fromFloatToPcm16(clippedSamples);
 
     // Write audio to stdout if CSV output is not requested
     if (!args.shouldExportCsv()) {
@@ -222,7 +228,7 @@ int clipper_main(int argc, char** argv) {
 
     // Export to CSV if requested
     if (args.shouldExportCsv()) {
-        if (!exportToCsv(args.outputCsv, floatSamples, clippedSamples)) {
+        if (!exportToCsv(args.outputCsv, originalSamples, clippedSamples)) {
             return 1;
         }
     }

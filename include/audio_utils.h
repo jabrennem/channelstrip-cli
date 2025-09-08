@@ -18,6 +18,18 @@ struct AudioData {
     uint32_t channels;
     uint32_t sampleRate;
     uint64_t totalFrames;
+    
+    /**
+     * @brief Convert PCM samples to normalized float vector
+     * @return Vector of normalized float samples (-1.0 to 1.0)
+     */
+    std::vector<float> fromPcm16ToFloat() const;
+    
+    /**
+     * @brief Update PCM samples from normalized float vector
+     * @param floatSamples Vector of normalized float samples (-1.0 to 1.0)
+     */
+    void fromFloatToPcm16(const std::vector<float>& floatSamples);
 };
 
 /**

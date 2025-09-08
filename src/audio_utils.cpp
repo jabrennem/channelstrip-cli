@@ -98,3 +98,18 @@ int16_t floatToPcm16(float sample) {
 float dbToGain(float db) {
     return powf(10.0f, db / 20.0f);
 }
+
+std::vector<float> AudioData::fromPcm16ToFloat() const {
+    std::vector<float> floatSamples(samples.size());
+    for (size_t i = 0; i < samples.size(); ++i) {
+        floatSamples[i] = pcm16ToFloat(samples[i]);
+    }
+    return floatSamples;
+}
+
+void AudioData::fromFloatToPcm16(const std::vector<float>& floatSamples) {
+    samples.resize(floatSamples.size());
+    for (size_t i = 0; i < floatSamples.size(); ++i) {
+        samples[i] = floatToPcm16(floatSamples[i]);
+    }
+}

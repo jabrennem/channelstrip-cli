@@ -50,8 +50,8 @@ public:
 
     }
 
-    float processSample(float x) override {
-        return x;
+    void processSamples(std::vector<float>& samples) override {
+        // EQ processing - currently pass-through
     }
     
 };
@@ -74,8 +74,6 @@ int eq_main(int argc, char** argv) {
     }
 
     // initialize variables for processing
-    std::vector<float> floatSamples(audioData.samples.size());
-    std::vector<float> processedSamples(audioData.samples.size());
     Eq eq(
         args.highPassFilterFreq,
         args.lowPassFilterFreq,
@@ -85,15 +83,14 @@ int eq_main(int argc, char** argv) {
     );
 
     // process samples
-    for (size_t i = 0; i < audioData.samples.size(); ++i) {
-        floatSamples[i] = pcm16ToFloat(audioData.samples[i]);
-        processedSamples[i] = eq.processSample(floatSamples[i]);
-        audioData.samples[i] = floatToPcm16(processedSamples[i]);
-    }
+    std::vector<float> originalSamples = audioData.fromPcm16ToFloat();
+    std::vector<float> processedSamples = originalSamples;
+    eq.processSamples(processedSamples);
+    audioData.fromFloatToPcm16(processedSamples);
 
     //  Write audio to stdout or Export to CSV if requested
     if (args.shouldExportCsv()) {
-        if (!exportToCsv(args.outputCsv, floatSamples, processedSamples)) {
+        if (!exportToCsv(args.outputCsv, originalSamples, processedSamples)) {
             return 1;
         }
     } else {
